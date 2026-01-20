@@ -1,4 +1,5 @@
 # Reality Gap AI - Phase 3 Demo Script
+<!-- Phase 3 Complete -->
 
 1. Run `make up`.
 2. Open `http://localhost:3000`.

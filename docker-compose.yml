@@ -2,10 +2,14 @@ version: '3.8'
 
 services:
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: drushti_backend
+    container_name: reality_gap_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/drushti
       - REDIS_URL=redis://redis:6379/0
@@ -18,19 +22,34 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - LOG_LEVEL=INFO
-    ports:
-      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
+    networks:
+      - reality_gap_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: reality_gap_frontend
+    ports:
+      - "3000:3000"
     volumes:
-      - ./backend:/app
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - reality_gap_net
 
   postgres:
     image: postgres:15-alpine
-    container_name: drushti_postgres
+    container_name: reality_gap_postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -41,22 +60,26 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - reality_gap_net
 
   redis:
     image: redis:7-alpine
-    container_name: drushti_redis
+    container_name: reality_gap_redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - reality_gap_net
 
   minio:
     image: minio/minio
-    container_name: drushti_minio
+    container_name: reality_gap_minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
@@ -66,11 +89,13 @@ services:
       - "9001:9001"
     volumes:
       - minio_data:/data
+    networks:
+      - reality_gap_net
 
   milvus:
     image: milvusdb/milvus:v2.3.0
-    container_name: drushti_milvus
-    command: ["milvus", "run", "standalone"]
+    container_name: reality_gap_milvus
+    command: [ "milvus", "run", "standalone" ]
     environment:
       ETCD_ENDPOINTS: etcd:2379
       MINIO_ADDRESS: minio:9000
@@ -79,18 +104,22 @@ services:
       - "minio"
     ports:
       - "19530:19530"
+    networks:
+      - reality_gap_net
 
   etcd:
     image: quay.io/coreos/etcd:v3.5.0
-    container_name: drushti_etcd
+    container_name: reality_gap_etcd
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
       - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
     command: etcd -advertise-client-urls=http://etcd:2379 -listen-client-urls=http://0.0.0.0:2379
+    networks:
+      - reality_gap_net
 
   neo4j:
     image: neo4j:5.5
-    container_name: drushti_neo4j
+    container_name: reality_gap_neo4j
     environment:
       NEO4J_AUTH: neo4j/password
     ports:
@@ -98,32 +127,44 @@ services:
       - "7687:7687"
     volumes:
       - neo4j_data:/data
+    networks:
+      - reality_gap_net
 
   keycloak:
     image: quay.io/keycloak/keycloak:21.0
-    container_name: drushti_keycloak
+    container_name: reality_gap_keycloak
     command: start-dev
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
       - "8080:8080"
+    networks:
+      - reality_gap_net
 
   prometheus:
     image: prom/prometheus
-    container_name: drushti_prometheus
+    container_name: reality_gap_prometheus
     volumes:
       - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+    networks:
+      - reality_gap_net
 
   grafana:
     image: grafana/grafana
-    container_name: drushti_grafana
+    container_name: reality_gap_grafana
     ports:
-      - "3000:3000"
+      - "3001:3000"
     depends_on:
       - prometheus
+    networks:
+      - reality_gap_net
+
+networks:
+  reality_gap_net:
+    driver: bridge
 
 volumes:
   postgres_data:

@@ -1,49 +1,51 @@
 flowchart TD
+    subgraph Client_Layer
+        Web["Next.js Frontend\n(Dashboard, Map, Graph)"]
+        Mobile["Citizen Mobile App\n(WhatsApp/Voice)"]
+    end
+    
+    subgraph API_Layer
+        Gateway["FastAPI Gateway\n(Auth, Rate Limit)"]
+        Web -->|HTTP/REST| Gateway
+        Mobile -->|Voice/Text| Gateway
+    end
+
     subgraph Sources
         YT[YouTube Scraper]
         TW[Twitter Scraper]
         News[News Scraper]
-        App[App Review Scraper]
-        WA[WhatsApp Webhook]
     end
+    Sources --> Gateway
 
-    subgraph Ingestion_Layer
-        Router[Scraper Router]
-        Registry[Scraper Registry]
-        Sources --> Router
-        Router --> Registry
-    end
-
-    subgraph Queue_System
-        Redis[Redis Streams]
-        Router -->|Raw Payload| Redis
-    end
-
-    subgraph Processing_Layer
+    subgraph Service_Layer
         Worker[Ingestion Worker]
         Dedup[Fingerprint Service]
-        PII[PII Stripper]
-        Redis --> Worker
-        Worker --> PII
-        Worker --> Dedup
+        Causal[Causal Engine]
     end
+    
+    Gateway -->|Async Tasks| Worker
+    Worker --> Dedup
+    Worker --> Causal
 
     subgraph Storage_Layer
-        PG[(PostgreSQL\nTransactional)]
-        Milvus[(Milvus\nVector DB)]
-        Neo4j[(Neo4j\nKnowledge Graph)]
-        MinIO[(MinIO\nObject Storage)]
-        
-        Worker -->|Structured Data| PG
-        Worker -->|Embeddings| Milvus
-        Worker -->|Relationships| Neo4j
-        Worker -->|Raw Media| MinIO
+        PG[(PostgreSQL)]
+        Milvus[(Milvus Vector DB)]
+        Neo4j[(Neo4j Graph)]
+        MinIO[(MinIO Object Store)]
+        Redis[(Redis Queue)]
     end
+    
+    Gateway --> Redis
+    Worker <--> PG
+    Worker <--> Milvus
+    Worker <--> Neo4j
+    Worker <--> MinIO
+    Causal <--> Neo4j
 
     subgraph Observability
         Prom[Prometheus]
         Graf[Grafana]
-        Worker -.->|Metrics| Prom
-        Redis -.->|Metrics| Prom
         Prom --> Graf
+        Worker -.-> Prom
+        Gateway -.-> Prom
     end

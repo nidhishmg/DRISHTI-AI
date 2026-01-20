@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reality-gap-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: reality-gap-backend
+  template:
+    metadata:
+      labels:
+        app: reality-gap-backend
+    spec:
+      containers:
+      - name: backend
+        image: reality-gap-backend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        env:
+        - name: ENV
+          value: "production"
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reality-gap-backend-svc
+spec:
+  selector:
+    app: reality-gap-backend
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reality-gap-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: reality-gap-frontend
+  template:
+    metadata:
+      labels:
+        app: reality-gap-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: reality-gap-frontend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          value: "http://reality-gap-backend-svc:8000"
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reality-gap-frontend-svc
+spec:
+  selector:
+    app: reality-gap-frontend
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+  type: LoadBalancer

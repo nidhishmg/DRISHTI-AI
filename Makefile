@@ -11,6 +11,10 @@ logs:
 
 test:
 	docker-compose -f docker-compose.yml exec backend pytest
+	docker-compose -f docker-compose.yml exec frontend npm test
+
+test-frontend:
+    docker-compose -f docker-compose.yml exec frontend npm test
 
 chaos-test:
 	@echo "Starting Chaos Test: Killing Redis..."

@@ -1,0 +1,32 @@
+youtube:
+  channels:
+    - id: "UC123456789"
+      name: "PIB_India"
+    - id: "UC987654321"
+      name: "MyGovIndia"
+  keywords: 
+    - "scholarship"
+    - "ration"
+    - "pension"
+    - "pm kisan"
+
+twitter:
+  hashtags:
+    - "#PMAY"
+    - "#ScholarshipDelay"
+    - "#RationCardIssue"
+  languages:
+    - "hi"
+    - "en"
+    - "ta"
+
+apps:
+  names:
+    - "UMANG"
+    - "DigiLocker"
+    - "Aarogya Setu"
+
+news:
+  urls:
+    - "https://pib.gov.in/index.aspx"
+    - "https://newsonair.gov.in/"

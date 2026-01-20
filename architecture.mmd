@@ -1,0 +1,49 @@
+flowchart TD
+    subgraph Sources
+        YT[YouTube Scraper]
+        TW[Twitter Scraper]
+        News[News Scraper]
+        App[App Review Scraper]
+        WA[WhatsApp Webhook]
+    end
+
+    subgraph Ingestion_Layer
+        Router[Scraper Router]
+        Registry[Scraper Registry]
+        Sources --> Router
+        Router --> Registry
+    end
+
+    subgraph Queue_System
+        Redis[Redis Streams]
+        Router -->|Raw Payload| Redis
+    end
+
+    subgraph Processing_Layer
+        Worker[Ingestion Worker]
+        Dedup[Fingerprint Service]
+        PII[PII Stripper]
+        Redis --> Worker
+        Worker --> PII
+        Worker --> Dedup
+    end
+
+    subgraph Storage_Layer
+        PG[(PostgreSQL\nTransactional)]
+        Milvus[(Milvus\nVector DB)]
+        Neo4j[(Neo4j\nKnowledge Graph)]
+        MinIO[(MinIO\nObject Storage)]
+        
+        Worker -->|Structured Data| PG
+        Worker -->|Embeddings| Milvus
+        Worker -->|Relationships| Neo4j
+        Worker -->|Raw Media| MinIO
+    end
+
+    subgraph Observability
+        Prom[Prometheus]
+        Graf[Grafana]
+        Worker -.->|Metrics| Prom
+        Redis -.->|Metrics| Prom
+        Prom --> Graf
+    end

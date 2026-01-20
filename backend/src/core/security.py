@@ -1,44 +1,65 @@
-import hashlib
-import os
-import re
-from typing import Optional
+from datetime import datetime, timedelta
+from typing import Optional, List
+from jose import JWTError, jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from pydantic import BaseModel
 
-# Salt should ideally be loaded from a secure secret manager
-SALT = os.getenv("PHONE_HASH_SALT", "default_salt_change_me_in_prod")
+# Configuration (Hardcoded for Demo/Phase 3 speed)
+SECRET_KEY = "reality_gap_demo_secret_key_change_in_prod"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 480 # 8 hours for demo day
 
-def hash_phone_number(phone: str) -> str:
-    """
-    Hash a phone number using SHA-256 and a salt.
-    Input should be E.164 format if possible.
-    """
-    if not phone:
-        return ""
-    
-    # Basic normalization (remove spaces, dashes) - expecting better validation upstream
-    clean_phone = re.sub(r'[\s\-]', '', phone)
-    
-    payload = f"{clean_phone}{SALT}".encode('utf-8')
-    return hashlib.sha256(payload).hexdigest()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-def strip_pii(text: str) -> str:
-    """
-    Remove basic PII (names, phone numbers, identifiers) from text.
-    This is a basic regex-based implementation.
-    """
-    if not text:
-        return ""
-        
-    # Redact Phone Numbers (India & Intl patterns)
-    # Matches +91-xxxxx-xxxxx or 10 digit numbers
-    phone_pattern = r'(\+?\d{1,3}[-.\s]?)?(\d{10}|\d{5}[-.\s]?\d{5})'
-    text = re.sub(phone_pattern, '[REDACTED_PHONE]', text)
-    
-    # Redact Aadhaar-like numbers (12 digits)
-    aadhaar_pattern = r'\b\d{4}\s?\d{4}\s?\d{4}\b'
-    text = re.sub(aadhaar_pattern, '[REDACTED_UID]', text)
-    
-    # Redact PAN-like strings (5 letters, 4 digits, 1 letter)
-    pan_pattern = r'[A-Z]{5}[0-9]{4}[A-Z]{1}'
-    text = re.sub(pan_pattern, '[REDACTED_PAN]', text)
-    
-    return text
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+    role: Optional[str] = None
+
+class User(BaseModel):
+    username: str
+    role: str
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Generate a JWT token with role claims."""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    """Validate JWT and extract user."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        role: str = payload.get("role")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username, role=role)
+    except JWTError:
+        raise credentials_exception
+    return token_data
+
+def require_role(allowed_roles: List[str]):
+    """RBAC dependency."""
+    async def role_checker(user: TokenData = Depends(get_current_user)):
+        if user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Operation not permitted for this role"
+            )
+        return user
+    return role_checker

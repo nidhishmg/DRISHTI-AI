@@ -5,8 +5,11 @@ from ..core.queue import RedisQueue
 from ..core.logging import logger
 from ..core.tracing import set_trace_id, get_trace_id, TraceContext
 from .registry import ScraperRegistry
+from .registry import ScraperRegistry
 # Ensure scrapers are registered
 import src.ingest.scrapers
+from ..core.pii import PIIRedactor
+
 
 class IngestionWorker:
     def __init__(self):
@@ -14,7 +17,10 @@ class IngestionWorker:
         self.job_stream = "ingestion_jobs"
         self.data_stream = "complaint_events"
         self.group = "ingestion_workers"
+        self.group = "ingestion_workers"
         self.consumer = "worker_1" # In prod, unique ID
+        self.redactor = PIIRedactor()
+
 
     async def process_job(self, msg_id: str, payload: Dict[str, Any]):
         trace_id = payload.get("trace_id")
@@ -37,8 +43,14 @@ class IngestionWorker:
                      # Ensure trace_id propagates
                     complaint.trace_id = get_trace_id()
                     
+                    complaint.trace_id = get_trace_id()
+                    
+                    # PII Scrubbing
+                    safe_data = self.redactor.process_document(complaint.model_dump(mode='json'))
+                    
                     # Push standard complaint to data stream
-                    self.queue.push(self.data_stream, complaint.model_dump(mode='json'))
+                    self.queue.push(self.data_stream, safe_data)
+
                 
                 logger.info("job_completed", count=len(complaints))
             except Exception as e:

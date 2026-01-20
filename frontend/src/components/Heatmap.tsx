@@ -10,16 +10,23 @@ const TileLayer = dynamic(() => import("react-leaflet").then((mod) => mod.TileLa
 const CircleMarker = dynamic(() => import("react-leaflet").then((mod) => mod.CircleMarker), { ssr: false });
 const Popup = dynamic(() => import("react-leaflet").then((mod) => mod.Popup), { ssr: false });
 
-const mockPoints = [
-    { lat: 12.9716, lng: 77.5946, intensity: 0.9, title: "Bangalore: Pension API Failure" },
-    { lat: 28.7041, lng: 77.1025, intensity: 0.7, title: "Delhi: Biometric Match Fail" },
-    { lat: 19.0760, lng: 72.8777, intensity: 0.5, title: "Mumbai: Ration Server Down" },
-    { lat: 25.5941, lng: 85.1376, intensity: 0.85, title: "Patna: Mid-day Meal Quality" },
-    { lat: 22.5726, lng: 88.3639, intensity: 0.6, title: "Kolkata: PDS Exclusion" },
-    { lat: 26.8467, lng: 80.9462, intensity: 0.8, title: "Lucknow: Scholarship Delays" }
-];
+import { Cluster } from "@/types";
 
-export default function Heatmap() {
+interface HeatmapProps {
+    clusters: Cluster[];
+}
+
+// Helper to get coordinates from cluster (mocking since backend doesn't send lat/lng yet)
+function getClusterCoords(cluster: Cluster) {
+    // Deterministic mock based on title char code
+    const seed = cluster.title.charCodeAt(0);
+    const lat = 20 + (seed % 10);
+    const lng = 78 + (seed % 10);
+    return { lat, lng };
+}
+
+
+export default function Heatmap({ clusters = [] }: HeatmapProps) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -40,24 +47,31 @@ export default function Heatmap() {
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                     url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 />
-                {mockPoints.map((point, idx) => (
-                    <CircleMarker
-                        key={idx}
-                        center={[point.lat, point.lng]}
-                        radius={20 * point.intensity}
-                        pathOptions={{
-                            color: point.intensity > 0.8 ? "#ef4444" : point.intensity > 0.6 ? "#f97316" : "#eab308",
-                            fillColor: point.intensity > 0.8 ? "#ef4444" : point.intensity > 0.6 ? "#f97316" : "#eab308",
-                            fillOpacity: 0.6
-                        }}
-                    >
-                        <Popup className="text-black">
-                            <div className="font-bold">{point.title}</div>
-                            <div className="text-xs">Intensity: {(point.intensity * 100).toFixed(0)}%</div>
-                        </Popup>
-                    </CircleMarker>
-                ))}
+                />
+                {clusters.map((cluster, idx) => {
+                    const coords = getClusterCoords(cluster);
+                    const intensity = (cluster.confidence_score || 0.5);
+                    return (
+                        <CircleMarker
+                            key={idx}
+                            center={[coords.lat, coords.lng]}
+                            radius={20 * intensity}
+                            pathOptions={{
+                                color: intensity > 0.8 ? "#ef4444" : intensity > 0.6 ? "#f97316" : "#eab308",
+                                fillColor: intensity > 0.8 ? "#ef4444" : intensity > 0.6 ? "#f97316" : "#eab308",
+                                fillOpacity: 0.6
+                            }}
+                        >
+                            <Popup className="text-black">
+                                <div className="font-bold">{cluster.title}</div>
+                                <div className="text-xs">Intensity: {(intensity * 100).toFixed(0)}%</div>
+                                <div className="text-xs">{cluster.summary.substring(0, 50)}...</div>
+                            </Popup>
+                        </CircleMarker>
+                    )
+                })}
             </MapContainer>
         </div>
     );
 }
+

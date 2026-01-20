@@ -4,6 +4,8 @@ from .api.webhook import router as webhook_router
 from .api.endpoints import router as api_router
 from .core.monitoring import metrics_endpoint
 from .core.logging import configure_logging
+from .middleware.rate_limit import RateLimitMiddleware
+
 
 configure_logging()
 
@@ -17,6 +19,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(RateLimitMiddleware)
+
 
 # Include Webhooks & API
 app.include_router(webhook_router, prefix="/webhook", tags=["webhooks"])
@@ -32,7 +37,7 @@ async def readiness_check():
     return {"status": "ready"}
 
 # Metrics
-@app.get("/metrics")
+@app.get("/metrics", tags=["metrics"])
 async def metrics():
     return metrics_endpoint(None)
 

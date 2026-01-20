@@ -1,8 +1,10 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from uuid import UUID, uuid4
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
+import re
 from enum import Enum
+
 
 class SourceType(str, Enum):
     YOUTUBE = "youtube"
@@ -48,6 +50,16 @@ class Complaint(BaseModel):
     # Hardening fields
     hash_fingerprint: Optional[str] = None
     dedup_confidence: Optional[float] = None
+    
+    @field_validator('raw_text')
+    @classmethod
+    def sanitize_text(cls, v: str) -> str:
+        # Basic sanitization: remove HTML tags, limit length
+        clean = re.sub(r'<[^>]*>', '', v)
+        if len(clean) > 5000:
+            raise ValueError("Text too long")
+        return clean
+
 
 class Cluster(BaseModel):
     id: UUID = Field(default_factory=uuid4)

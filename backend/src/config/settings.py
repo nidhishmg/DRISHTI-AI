@@ -26,6 +26,18 @@ class Settings(BaseSettings):
 
     # API Keys
     OPENAI_API_KEY: str = ""
+    
+    # Patch 7: Clustering Optimization
+    FULL_RECLUSTER: bool = False
+    LSH_ENABLED: bool = True
+    CLUSTERING_BATCH_SIZE: int = 1000
+    
+    # Patch 8: ASR Scaling
+    ASR_WORKER_POOL_SIZE: int = 2
+    ASR_GPU_ENABLED: bool = False
+    ASR_CONCURRENCY_LIMIT: int = 5
+
+
 
     class Config:
         env_file = ".env"

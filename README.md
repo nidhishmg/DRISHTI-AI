@@ -1,28 +1,59 @@
-# Reality Gap AI (DRISHTI-AI)
+# DRISHTI-AI (Reality Gap AI Platform) v2.0
 
-## Overview
-Reality Gap AI is a robust intelligence platform designed to uncover discrepancies between government scheme allocations and on-the-ground reality. It processes voice complaints, social media signals, and news reports to identify "Failure Clusters" and generate causal interventions.
+**Integrity-First AI Platform for Public Scheme Delivery**
 
-## Phases
-- **Phase 1: Foundation**: Ingestion Engine, PostgreSQL/Milvus/Neo4j setup.
-- **Phase 2: Intelligence**: Causal Inference, Clustering, Intervention Generation.
-- **Phase 3: Experience**: Next.js Frontend, Real-time Dashboard, Policy Simulator.
+DRISHTI-AI is a comprehensive platform designed to bridge the gap between reported data and on-the-ground reality in public scheme delivery. It leverages audio ingestion, causal AI, and clustering to detect anomalies, identify root causes, and propose interventions.
 
-## Quick Start (Phase 3)
-1. **Infrastructure**:
-   ```bash
-   make up
-   ```
-2. **Access**:
-   - Frontend: [http://localhost:3000](http://localhost:3000)
-   - API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
-   - Grafana: [http://localhost:3001](http://localhost:3001)
+## 🚀 Key Features
 
-## Architecture
-See [architecture.mmd](architecture.mmd) for the full system diagram.
+*   **Multi-Modal Ingestion**: Upload voice reports (mock supported for demo) and process them.
+*   **Causal Intelligence**: Visualize causal relationships between failure archetypes (e.g., Biometric Failure -> Pension Denial).
+*   **Dynamic Clustering**: Real-time clustering of incoming reports to identify "Hot Clusters" of issues.
+*   **Hardened Security**:
+    *   **Authentication**: JWT with Refresh Tokens, Secure Cookies, and RBAC.
+    *   **Inputs**: Strict Pydantic validation and sanitization.
+    *   **Data Governance**: PII redaction (email, phone, aadhaar) and Chain of Custody logging.
+    *   **Export**: Secure export of evidence with watermarking.
+*   **Scalability**:
+    *   **Performance**: Redis-backed rate limiting, incremental clustering, and ASR worker pool.
+    *   **Deployment**: Docker-ready, Helm charts included, and CI/CD workflows.
 
-## Documentation
-- [Backend README](backend/README.md)
-- [Frontend README](frontend/README.md)
-- [Deployment Guide](deployment/README.md)
-- [Demo Script](DEMO.md)
+## 🛠️ Technology Stack
+
+*   **Backend**: FastAPI, Python 3.10
+*   **Frontend**: Next.js 14, Tailwind CSS, Shadcn/UI, Recharts, Leaflet
+*   **Data/ML**: FAISS/Milvus (Vector DB), HDBSCAN, UMAP, Faster-Whisper
+*   **Infrastructure**: Docker, Redis, Prometheus (Metrics)
+
+## ⚡ Quick Start (Demo Mode)
+
+1.  **Prerequisites**: Docker & Docker Compose installed.
+2.  **Run All Services**:
+    ```bash
+    make run
+    ```
+    This starts Backend (Port 8000), Frontend (Port 3000), Redis, and other services.
+
+3.  **Access Dashboard**: Open `http://localhost:3000`
+4.  **API Documentation**: Open `http://localhost:8000/docs`
+
+## 🔐 Security & Testing
+
+*   **Run Tests**:
+    ```bash
+    # Backend
+    cd backend && pytest
+    # Frontend
+    cd frontend && npm test
+    ```
+*   **Export Evidence**: Securely download complaint data via the API (Analyst role required).
+
+## 📂 Project Structure
+
+*   `backend/`: FastAPI application, ML pipeline, and API endpoints.
+*   `frontend/`: Next.js dashboard and visualization components.
+*   `infra/`: Docker compose, Prometheus config, and Helm charts.
+*   `deployment/`: K8s manifests (if applied).
+
+## 🛡️ License
+MIT License

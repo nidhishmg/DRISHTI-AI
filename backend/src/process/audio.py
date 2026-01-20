@@ -10,8 +10,11 @@ class WhisperAudioProcessor(AbstractModel):
     def __init__(self):
         from faster_whisper import WhisperModel
         # Use settings for model size and compute type
-        # "int8" is safer for CPU/low-memory GPU
-        self.model = WhisperModel(settings.WHISPER_MODEL, device="auto", compute_type="int8")
+        device = "cuda" if settings.ASR_GPU_ENABLED else "cpu"
+        compute_type = "float16" if settings.ASR_GPU_ENABLED else "int8"
+        
+        self.model = WhisperModel(settings.WHISPER_MODEL, device=device, compute_type=compute_type)
+
 
     def predict(self, file_path: str) -> dict:
         """
